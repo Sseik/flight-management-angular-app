@@ -1,17 +1,15 @@
 <div class="container">
   <h2>Available Flights</h2>
   
-  @if (isLoading) {
-    <p>Loading...</p>
-  }
-
-  @if (!isLoading) {
+  @if (flights$ | async; as flights) {
+    
     <table class="flight-table">
       <thead>
         <tr>
             <th>Flight</th>
             <th>Route</th>
-            <th>Duration</th> <th>Status</th>
+            <th>Duration</th>
+            <th>Status</th>
             <th>Price</th>
         </tr>
       </thead>
@@ -20,12 +18,15 @@
           <tr>
             <td>{{ flight.flightNumber }}</td>
             <td>{{ flight.origin }} ➝ {{ flight.destination }}</td>
-            <td>{{ flight.departureTime | duration:flight.arrivalTime }}</td> 
+            <td>{{ flight.departureTime | duration:flight.arrivalTime }}</td>
             <td [appStatusColor]="flight.status">{{ flight.status }}</td>
             <td>{{ flight.price }} {{ flight.currency }}</td>
           </tr>
         }
       </tbody>
     </table>
+
+  } @else {
+    <p>Loading flights data...</p>
   }
 </div>
