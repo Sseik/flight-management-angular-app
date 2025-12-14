@@ -1,32 +1,57 @@
 <div class="container">
-  <h2>Available Flights</h2>
-  
-  @if (flights$ | async; as flights) {
-    
-    <table class="flight-table">
-      <thead>
-        <tr>
-            <th>Flight</th>
-            <th>Route</th>
-            <th>Duration</th>
-            <th>Status</th>
-            <th>Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (flight of flights; track flight.flightId) {
-          <tr>
-            <td>{{ flight.flightNumber }}</td>
-            <td>{{ flight.origin }} ➝ {{ flight.destination }}</td>
-            <td>{{ flight.departureTime | duration:flight.arrivalTime }}</td>
-            <td [appStatusColor]="flight.status">{{ flight.status }}</td>
-            <td>{{ flight.price }} {{ flight.currency }}</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+  <h2>Панель керування рейсами</h2>
 
-  } @else {
-    <p>Loading flights data...</p>
-  }
+  <div class="actions-bar" style="display: flex; gap: 10px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+    <input type="text" [(ngModel)]="searchTerm" placeholder="Пошук (Київ, Лондон...)" style="padding: 8px;">
+    <button (click)="search()" style="cursor: pointer;">🔍 Знайти</button>
+
+    <select style="padding: 8px;">
+      <option value="">Усі міста (API)</option>
+      @for (city of cities; track city) {
+        <option [value]="city">{{ city }}</option>
+      }
+    </select>
+
+    <div style="flex-grow: 1;"></div>
+
+    <button (click)="createTestFlight()" style="background-color: #0d6efd; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+      + Додати рейс
+    </button>
+  </div>
+
+  <table class="flight-table">
+    <thead>
+      <tr>
+          <th>№</th>
+          <th>Маршрут</th>
+          <th>Час</th>
+          <th>Статус</th>
+          <th>Дії</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (flight of flights; track flight.flightId) {
+        <tr>
+          <td>{{ flight.flightNumber }}</td>
+          <td>
+            {{ flight.origin }} ➝ {{ flight.destination }}
+            <br>
+            <small style="color: #666;">
+              ⏱ {{ flight.departureTime | duration:flight.arrivalTime }}
+            </small>
+          </td>
+          <td>
+            {{ flight.departureTime | date:'shortTime' }} - {{ flight.arrivalTime | date:'shortTime' }}
+            <br>
+            <small class="text-muted">{{ flight.departureTime | date:'dd.MM.yyyy' }}</small>
+          </td>
+          <td [appStatusColor]="flight.status">{{ flight.status }}</td>
+          <td>
+            <button (click)="bookFlight(flight.flightId)" title="Забронювати" style="margin-right: 5px; cursor: pointer;">🎫</button>
+            <button (click)="deleteFlight(flight.flightId)" title="Видалити" style="color: red; cursor: pointer;">🗑️</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
 </div>
