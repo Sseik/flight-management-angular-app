@@ -1,18 +1,16 @@
 <div class="app-layout">
-  <header class="main-header">
-    <div class="logo">
+  <header style="background: #fff; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+    <div class="logo" style="font-weight: bold; font-size: 1.2rem; color: #0d6efd;">
       ✈️ Flight Manager
     </div>
-    <nav class="main-nav">
-      <a routerLink="/dashboard" routerLinkActive="active">Дашборд</a>
-      <a routerLink="/booking" routerLinkActive="active">Бронювання</a>
+    <nav style="display: flex; gap: 20px;">
+      <a routerLink="/dashboard" routerLinkActive="active" style="text-decoration: none; color: #333; font-weight: 500;">Дашборд</a>
+      <a routerLink="/booking" routerLinkActive="active" style="text-decoration: none; color: #333; font-weight: 500;">Бронювання</a>
     </nav>
-    <div class="user-profile">
-      <span>Admin User</span>
-    </div>
+    <div class="user">Admin</div>
   </header>
 
-  <main class="content-area">
+  <main style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
     <router-outlet></router-outlet>
   </main>
 </div>

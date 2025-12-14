@@ -1,24 +1,15 @@
 import { Component } from '@angular/core';
 
-interface Stat {
-  title: string;
-  value: string;
-  icon: string;
-  color: string;
-}
-
 @Component({
   selector: 'app-home',
-  templateUrl: './home.html'
+  templateUrl: './home.html',
+  styleUrls: ['./home.scss'], 
 })
-export class Home {
-  stats: Stat[] = [
-    { title: 'Рейси сьогодні', value: '128', icon: '✈️', color: '#4caf50' },
-    { title: 'Бронювання', value: '56', icon: '🎫', color: '#2196f3' },
-    { title: 'Затримки', value: '3', icon: '⚠️', color: '#ff9800' }
+export class HomeComponent {
+  stats = [
+    { title: 'Всього рейсів', value: '1,240', icon: '🛫', color: '#0d6efd' },
+    { title: 'Пасажирів', value: '84,392', icon: '👥', color: '#198754' },
+    { title: 'Затримок', value: '23', icon: '⚠️', color: '#dc3545' },
+    { title: 'Прибуток', value: '$4.2M', icon: '💰', color: '#ffc107' }
   ];
-
-  trackByTitle(index: number, item: Stat) {
-    return item.title;
-  }
 }
