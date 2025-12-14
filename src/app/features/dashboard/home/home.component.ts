@@ -46,7 +46,7 @@ export class HomeComponent implements OnInit {
     this.flightService.getMyBookings().subscribe({
       next: (data: Booking[]) => {
         // Беремо перші 5 елементів (вони вже найновіші завдяки серверному сортуванню)
-        пthis.recentActivities = data.slice(0, 5);
+        this.recentActivities = data.slice(0, 5);
         this.updateView();
       },
       error: () => this.updateView()
