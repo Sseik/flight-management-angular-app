@@ -11,7 +11,7 @@
         <tr>
             <th>Flight</th>
             <th>Route</th>
-            <th>Status</th>
+            <th>Duration</th> <th>Status</th>
             <th>Price</th>
         </tr>
       </thead>
@@ -20,6 +20,7 @@
           <tr>
             <td>{{ flight.flightNumber }}</td>
             <td>{{ flight.origin }} ➝ {{ flight.destination }}</td>
+            <td>{{ flight.departureTime | duration:flight.arrivalTime }}</td> 
             <td [appStatusColor]="flight.status">{{ flight.status }}</td>
             <td>{{ flight.price }} {{ flight.currency }}</td>
           </tr>

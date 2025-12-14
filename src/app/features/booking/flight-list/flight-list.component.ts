@@ -3,13 +3,18 @@ import { CommonModule } from '@angular/common';
 import { FlightService } from '../../../core/services/flight.service';
 import { Flight } from '../../../shared/interfaces/flight.interface';
 import { StatusColorDirective } from '../../../shared/directives/status-color.directive';
+import { DurationPipe } from '../../../shared/pipes/duration.pipe'; // <--- Імпорт
 
 @Component({
   selector: 'app-flight-list',
   standalone: true,
-  imports: [CommonModule, StatusColorDirective],
+  imports: [
+    CommonModule, 
+    StatusColorDirective,
+    DurationPipe 
+  ],
   templateUrl: './flight-list.component.html',
-  styleUrls: ['./flight-list.component.scss'], // Важливо: посилання на стиль
+  styleUrls: ['./flight-list.component.scss'],
 })
 export class FlightListComponent implements OnInit {
   flights: Flight[] = [];

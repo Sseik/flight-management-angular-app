@@ -2,9 +2,11 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
   name: 'duration',
+  standalone: true 
 })
 export class DurationPipe implements PipeTransform {
   transform(departure: Date, arrival: Date): string {
+    if (!departure || !arrival) return '';
     const dep = new Date(departure);
     const arr = new Date(arrival);
     const diffMs = arr.getTime() - dep.getTime();
