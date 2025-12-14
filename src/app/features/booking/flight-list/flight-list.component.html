@@ -1,0 +1,30 @@
+<div class="container">
+  <h2>Available Flights</h2>
+  
+  @if (isLoading) {
+    <p>Loading...</p>
+  }
+
+  @if (!isLoading) {
+    <table class="flight-table">
+      <thead>
+        <tr>
+            <th>Flight</th>
+            <th>Route</th>
+            <th>Status</th>
+            <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (flight of flights; track flight.flightId) {
+          <tr>
+            <td>{{ flight.flightNumber }}</td>
+            <td>{{ flight.origin }} ➝ {{ flight.destination }}</td>
+            <td [appStatusColor]="flight.status">{{ flight.status }}</td>
+            <td>{{ flight.price }} {{ flight.currency }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
