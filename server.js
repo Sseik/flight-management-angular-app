@@ -184,16 +184,29 @@ app.get('/api/airports', async (req, res) => {
 
 // 8. POST /api/bookings (Створення квитка)
 app.post('/api/bookings', async (req, res) => {
+  const { flightId, userId } = req.body;
+
+  if (!flightId || !userId) {
+    return res.status(400).json({ error: 'Flight ID and User ID are required' });
+  }
+
   try {
-    const { flightId, passenger } = req.body;
-    // Використовуємо дефолтний user_id=1, бо у нас немає повноцінної авторизації
+    // Генеруємо випадкове місце (наприклад, 12A), бо в базі це поле NOT NULL
+    const randomSeat = Math.floor(Math.random() * 30 + 1) + ['A', 'B', 'C'][Math.floor(Math.random() * 3)];
+
     const result = await pool.query(
-      `INSERT INTO tickets (flight_id, user_id, seat_number, passenger_info) 
-       VALUES ($1, 1, '1A', $2) RETURNING ticket_id`,
-      [flightId, JSON.stringify({ name: passenger })]
+      // ВИПРАВЛЕНО: 
+      // 1. booking_time -> booking_date
+      // 2. Додано seat_number (обов'язкове поле)
+      `INSERT INTO tickets (flight_id, user_id, booking_date, seat_number) 
+       VALUES ($1, $2, NOW(), $3) 
+       RETURNING ticket_id`,
+      [flightId, userId, randomSeat]
     );
+    
     res.json({ success: true, ticketId: result.rows[0].ticket_id });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -249,6 +262,15 @@ app.get('/api/stats', async (req, res) => {
       totalBookings: parseInt(ticketsCount.rows[0].count),
       delayed: parseInt(delayedCount.rows[0].count)
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT user_id, username FROM users ORDER BY username');
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

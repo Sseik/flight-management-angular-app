@@ -1,8 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http'; // <--- Важливо для типів помилок
 import { FlightService } from '../../../core/services/flight.service';
 import { Flight } from '../../../shared/interfaces/flight.interface';
+import { User } from '../../../shared/interfaces/api.models'; // <--- Важливо для User
 import { StatusColorDirective } from '../../../shared/directives/status-color.directive';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 
@@ -16,15 +18,18 @@ import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 export class FlightListComponent implements OnInit {
   flights: Flight[] = [];
   cities: string[] = [];
-  
-  // Виправлено: прибрали ": string", лінтер це сам зрозуміє
-  searchTerm = ''; 
+  users: User[] = []; // Список користувачів
+
+  searchTerm = '';
+  selectedCity = ''; // <--- ВИПРАВЛЕННЯ 1: Додали змінну, якої не вистачало
+  selectedUserId: number | null = null; // ID обраного юзера
   
   private flightService = inject(FlightService);
 
   ngOnInit(): void {
     this.loadFlights();
     this.loadCities();
+    this.loadUsers();
   }
 
   loadFlights() {
@@ -33,6 +38,26 @@ export class FlightListComponent implements OnInit {
 
   loadCities() {
     this.flightService.getAirports().subscribe(data => this.cities = data);
+  }
+
+  loadUsers() {
+    this.flightService.getUsers().subscribe(data => {
+      this.users = data;
+      if (this.users.length > 0) {
+        this.selectedUserId = this.users[0].user_id;
+      }
+    });
+  }
+
+  // <--- ВИПРАВЛЕННЯ 2: Додали метод фільтрації, якого не вистачало
+  filterByCity() {
+    if (this.selectedCity) {
+      this.flightService.searchFlights(this.selectedCity).subscribe(data => {
+        this.flights = data;
+      });
+    } else {
+      this.loadFlights();
+    }
   }
 
   search() {
@@ -55,14 +80,13 @@ export class FlightListComponent implements OnInit {
   }
 
   createTestFlight() {
-    // Виправлено: типізуємо як Flight, дати залишаємо як Date об'єкти
     const newFlight: Flight = {
       flightId: 0, 
       flightNumber: 'TEST-' + Math.floor(Math.random() * 999),
       origin: 'Kyiv',
       destination: 'London',
-      departureTime: new Date(), // <-- Залишаємо Date
-      arrivalTime: new Date(new Date().getTime() + 7200000), // <-- Залишаємо Date (+2 години)
+      departureTime: new Date(),
+      arrivalTime: new Date(new Date().getTime() + 7200000),
       status: 'Scheduled',
       price: 100,
       currency: 'USD'
@@ -74,11 +98,38 @@ export class FlightListComponent implements OnInit {
     });
   }
 
+  delayFlight(id: number) {
+    this.flightService.updateFlight(id, { status: 'Delayed' }).subscribe({
+      next: () => {
+        this.loadFlights(); 
+        alert('Статус рейсу змінено на "Delayed"');
+      },
+      error: (err: HttpErrorResponse) => { 
+        console.error(err);
+        const msg = err.error?.error || err.message || 'Невідома помилка';
+        alert('Помилка оновлення: ' + msg);
+      }
+    });
+  }
+
   bookFlight(flightId: number) {
-    const passenger = prompt('Введіть ім\'я пасажира:');
-    if (passenger) {
-      this.flightService.bookTicket({ flightId, passenger }).subscribe(() => {
-        alert('Квиток успішно заброньовано!');
+    if (!this.selectedUserId) {
+      alert('Будь ласка, виберіть користувача зі списку зверху!');
+      return;
+    }
+
+    const currentUser = this.users.find(u => u.user_id == this.selectedUserId);
+
+    if(confirm(`Забронювати квиток для користувача ${currentUser?.username}?`)) {
+      this.flightService.bookTicket({ 
+        flightId, 
+        userId: this.selectedUserId 
+      }).subscribe({
+        next: () => alert('Квиток успішно заброньовано!'),
+        error: (err: HttpErrorResponse) => {
+           const msg = err.error?.error || err.message || 'Невідома помилка';
+           alert('Помилка: ' + msg);
+        }
       });
     }
   }

@@ -1,16 +1,29 @@
 <div class="container">
   <h2>Панель керування рейсами</h2>
 
-  <div class="actions-bar" style="display: flex; gap: 10px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-    <input type="text" [(ngModel)]="searchTerm" placeholder="Пошук (Київ, Лондон...)" style="padding: 8px;">
-    <button (click)="search()" style="cursor: pointer;">🔍 Знайти</button>
+  <div class="actions-bar" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    
+    <div style="display: flex; gap: 5px;">
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Пошук..." style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <button (click)="search()" style="cursor: pointer; padding: 0 10px;">🔍</button>
+    </div>
 
-    <select style="padding: 8px;">
-      <option value="">Усі міста (API)</option>
+    <select [(ngModel)]="selectedCity" (change)="filterByCity()" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+      <option value="">🌍 Всі міста</option>
       @for (city of cities; track city) {
         <option [value]="city">{{ city }}</option>
       }
     </select>
+
+    <div style="display: flex; align-items: center; gap: 5px; border-left: 2px solid #ddd; padding-left: 15px;">
+      <label for="userSelect" style="font-weight: bold; color: #555;">Хто купує:</label>
+      
+      <select id="userSelect" [(ngModel)]="selectedUserId" style="padding: 8px; border: 2px solid #0d6efd; border-radius: 4px; font-weight: bold;">
+        @for (user of users; track user.user_id) {
+          <option [ngValue]="user.user_id">👤 {{ user.username }}</option>
+        }
+      </select>
+    </div>
 
     <div style="flex-grow: 1;"></div>
 
@@ -48,6 +61,9 @@
           <td [appStatusColor]="flight.status">{{ flight.status }}</td>
           <td>
             <button (click)="bookFlight(flight.flightId)" title="Забронювати" style="margin-right: 5px; cursor: pointer;">🎫</button>
+            <button (click)="delayFlight(flight.flightId)" title="Затримати рейс" style="margin-right: 5px; cursor: pointer; color: orange;">
+              ⏳
+            </button>
             <button (click)="deleteFlight(flight.flightId)" title="Видалити" style="color: red; cursor: pointer;">🗑️</button>
           </td>
         </tr>
