@@ -17,7 +17,6 @@
 
     <div style="display: flex; align-items: center; gap: 5px; border-left: 2px solid #ddd; padding-left: 15px;">
       <label for="userSelect" style="font-weight: bold; color: #555;">Хто купує:</label>
-      
       <select id="userSelect" [(ngModel)]="selectedUserId" style="padding: 8px; border: 2px solid #0d6efd; border-radius: 4px; font-weight: bold;">
         @for (user of users; track user.user_id) {
           <option [ngValue]="user.user_id">👤 {{ user.username }}</option>
@@ -38,33 +37,53 @@
           <th>№</th>
           <th>Маршрут</th>
           <th>Час</th>
-          <th>Статус</th>
-          <th>Дії</th>
+          <th>Статус</th> <th>Дії</th>
       </tr>
     </thead>
     <tbody>
       @for (flight of flights; track flight.flightId) {
         <tr>
-          <td>{{ flight.flightNumber }}</td>
+          <td><strong>{{ flight.flightNumber }}</strong></td>
           <td>
             {{ flight.origin }} ➝ {{ flight.destination }}
             <br>
             <small style="color: #666;">
-              ⏱ {{ flight.departureTime | duration:flight.arrivalTime }}
+                ⏱ {{ flight.departureTime | date:'shortTime' }} - {{ flight.arrivalTime | date:'shortTime' }}
             </small>
           </td>
           <td>
-            {{ flight.departureTime | date:'shortTime' }} - {{ flight.arrivalTime | date:'shortTime' }}
+            {{ flight.departureTime | date:'dd.MM.yyyy' }}
             <br>
-            <small class="text-muted">{{ flight.departureTime | date:'dd.MM.yyyy' }}</small>
+            <small class="text-muted">{{ flight.departureTime | date:'HH:mm' }}</small>
           </td>
-          <td [appStatusColor]="flight.status">{{ flight.status }}</td>
+          
           <td>
-            <button (click)="bookFlight(flight.flightId)" title="Забронювати" style="margin-right: 5px; cursor: pointer;">🎫</button>
-            <button (click)="delayFlight(flight.flightId)" title="Затримати рейс" style="margin-right: 5px; cursor: pointer; color: orange;">
-              ⏳
-            </button>
-            <button (click)="deleteFlight(flight.flightId)" title="Видалити" style="color: red; cursor: pointer;">🗑️</button>
+            <span [ngClass]="{
+              'status-scheduled': flight.status === 'Scheduled',
+              'status-cancelled': flight.status === 'Cancelled',
+              'status-arrived': flight.status === 'Arrived',
+              'status-delayed': flight.status === 'Delayed'
+            }">
+              {{ flight.status }}
+            </span>
+          </td>
+
+          <td>
+             @if (flight.status === 'Scheduled') {
+                <button (click)="bookFlight(flight.flightId)" title="Забронювати" style="margin-right: 5px; cursor: pointer;">🎫</button>
+             }
+
+             @if (flight.status === 'Scheduled' || flight.status === 'Delayed' || flight.status === 'On Time') {
+                <button (click)="cancelFlight(flight.flightId)" title="Скасувати (для архіву)" style="margin-right: 5px; cursor: pointer; border: none; background: none;">
+                    ❌
+                </button>
+                
+                <button (click)="delayFlight(flight.flightId)" title="Затримати" style="margin-right: 5px; cursor: pointer; color: orange; border: none; background: none;">
+                    ⏳
+                </button>
+             }
+
+             <button (click)="deleteFlight(flight.flightId)" title="Видалити повністю" style="color: red; cursor: pointer; border: none; background: none;">🗑️</button>
           </td>
         </tr>
       }

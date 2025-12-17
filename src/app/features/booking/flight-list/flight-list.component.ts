@@ -133,4 +133,19 @@ export class FlightListComponent implements OnInit {
       });
     }
   }
+
+  cancelFlight(flightId: number) {
+    const confirmed = confirm('❌ Ви дійсно хочете скасувати цей рейс? Це дозволить перенести його в Архів.');
+    
+    if (confirmed) {
+      this.flightService.updateStatus(flightId, 'Cancelled').subscribe({
+        next: (res) => {
+          // Оновлюємо статус локально або перезавантажуємо список
+          alert(`Статус рейсу змінено на: ${res.status}`);
+          this.loadFlights(); 
+        },
+        error: (err) => alert('Помилка оновлення статусу: ' + err.message)
+      });
+    }
+  }
 }

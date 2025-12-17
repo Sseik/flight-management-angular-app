@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { Flight } from '../../shared/interfaces/flight.interface';
 import { Booking, SystemStats, User } from '../../shared/interfaces/api.models';
 import { Log } from '../decorators/log.decorator';
+import { ArchivedFlight } from '../../shared/interfaces/archived-flight.interface';
+import { AirlineStatsResult, FilteredFlightResult, RatedFlightResult } from '../../shared/interfaces/analytics.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -64,5 +66,38 @@ export class FlightService {
   @Log()
   getUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/users`);
+  }
+
+  @Log()
+  updateStatus(flightId: number, newStatus: string): Observable<{ success: boolean; status: string }> {
+    return this.http.patch<{ success: boolean; status: string }>(
+      `${this.apiUrl}/flights/${flightId}/status`, 
+      { status: newStatus }
+    );
+  }
+
+  @Log()
+  archiveFlights(fromDate: string, toDate: string): Observable<{ success: boolean; count: number }> {
+    return this.http.post<{ success: boolean; count: number }>(`${this.apiUrl}/archive`, { fromDate, toDate });
+  }
+
+  @Log()
+  getArchivedFlights(): Observable<ArchivedFlight[]> {
+    return this.http.get<ArchivedFlight[]>(`${this.apiUrl}/archive/list`);
+  }
+
+  seedRatings(): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/analytics/seed-ratings`, {});
+  }
+  runQueryA(): Observable<FilteredFlightResult[]> { 
+    return this.http.get<FilteredFlightResult[]>(`${this.apiUrl}/analytics/query-a`); 
+  }
+
+  runQueryB(): Observable<AirlineStatsResult[]> { 
+    return this.http.get<AirlineStatsResult[]>(`${this.apiUrl}/analytics/query-b`); 
+  }
+
+  runQueryC(): Observable<RatedFlightResult[]> { 
+    return this.http.get<RatedFlightResult[]>(`${this.apiUrl}/analytics/query-c`); 
   }
 }

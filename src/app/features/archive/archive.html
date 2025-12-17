@@ -1,0 +1,85 @@
+<div class="archive-container">
+  <h2>🗄️ Архів та Аналітика</h2>
+
+  <div class="tabs">
+    <button [class.active]="activeTab === 'archive'" (click)="activeTab = 'archive'">Архівування</button>
+    <button [class.active]="activeTab === 'analytics'" (click)="activeTab = 'analytics'">Аналітика (Завдання 5)</button>
+  </div>
+
+  @if (activeTab === 'archive') {
+    <div class="controls card">
+        <h3>1. Перенесення даних (PostgreSQL -> MongoDB)</h3>
+        <div class="flex-row">
+            <label>З: <input type="date" [(ngModel)]="fromDate"></label>
+            <label>По: <input type="date" [(ngModel)]="toDate"></label>
+            <button (click)="runArchive()" [disabled]="isLoading">
+            {{ isLoading ? '⏳ Обробка...' : '🚀 Архівувати' }}
+            </button>
+        </div>
+        @if (resultMessage) {
+            <p [class.success]="isSuccess" class="msg">{{ resultMessage }}</p>
+        }
+    </div>
+
+    <div class="view-panel card">
+        <div class="flex-row" style="justify-content: space-between;">
+            <h3>2. Перегляд Архіву</h3>
+            <button (click)="loadArchive()" class="refresh-btn">🔄 Оновити</button>
+        </div>
+        <table class="archive-table">
+            <thead>
+                <tr>
+                    <th>Дата</th><th>Рейс</th><th>Авіакомпанія</th><th>Маршрут</th><th>Пас.</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (doc of archivedList; track doc._id) {
+                <tr>
+                    <td>{{ doc.archivedAt | date:'shortDate' }}</td>
+                    <td><strong>{{ doc.flightNumber }}</strong> <span [class]="'badge ' + doc.status">{{ doc.status }}</span></td>
+                    <td>{{ doc.airline.name }}</td>
+                    <td>{{ doc.route.origin.city }} ➝ {{ doc.route.destination.city }}</td>
+                    <td>{{ doc.passengerManifest.length }}</td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+  }
+
+  @if (activeTab === 'analytics') {
+    <div class="card">
+        <div class="analytics-buttons">
+            <button (click)="runAnalytics('A')">А) Фільтр + Сортування</button>
+            <button (click)="runAnalytics('B')">Б) Агрегація (Group)</button>
+            <button (click)="runAnalytics('C')">В) З'єднання (Lookup)</button>
+        </div>
+
+        @if (analyticsResult && analyticsResult.length > 0) {
+            <div class="results-area">
+                <h3>Результат: {{ queryTitle }}</h3>
+                <pre>{{ analyticsResult | json }}</pre>
+                
+                <table class="archive-table">
+                    <thead>
+                        <tr>
+                            @for (item of asRecord(analyticsResult[0]) | keyvalue; track item.key) {
+                                <th>{{ item.key }}</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (row of analyticsResult; track $index) {
+                            <tr>
+                                @for (item of asRecord(row) | keyvalue; track item.key) {
+                                    <td>{{ formatValue(item.value) }}</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+  }
+</div>

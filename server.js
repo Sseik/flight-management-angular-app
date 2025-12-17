@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,10 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
+
+mongoose.connect('mongodb://127.0.0.1:27017/flight_archive')
+  .then(() => console.log('✅ Connected to MongoDB (flight_archive)'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Мапінг адаптований під вашу схему БД
 const mapFlight = (row) => ({
@@ -271,6 +276,151 @@ app.get('/api/users', async (req, res) => {
   try {
     const result = await pool.query('SELECT user_id, username FROM users ORDER BY username');
     res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/flights/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE flights SET status = $1 WHERE flight_id = $2 RETURNING status`,
+      [status, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Flight not found' });
+    }
+
+    res.json({ success: true, status: result.rows[0].status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const ArchivedFlight = require('./src/backend/models/ArchivedFlight'); 
+const ArchiveService = require('./src/backend/services/ArchiveService');
+
+// --- ЕНДПОЇНТ МІГРАЦІЇ (ETL Process) ---
+app.post('/api/archive', async (req, res) => {
+  const { fromDate, toDate } = req.body;
+  
+  // Створюємо екземпляр сервісу, передаючи йому пул з'єднань
+  const archiveService = new ArchiveService(pool);
+
+  try {
+    // Вся складна логіка тепер всередині методу класу
+    const result = await archiveService.archiveFlights(fromDate, toDate);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/archive/list', async (req, res) => {
+  try {
+    console.log('📥 Отримано запит на список архіву...');
+    const docs = await ArchivedFlight.find().sort({ archivedAt: -1 }).limit(50);
+    console.log(`📤 Знайдено документів у MongoDB: ${docs.length}`);
+    res.json(docs);
+  } catch (err) {
+    console.error('❌ Помилка читання архіву:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- ЗАВДАННЯ 5: Аналітичні запити MongoDB ---
+
+// Допоміжна модель для рейтингу (щоб було з чим робити JOIN)
+const RatingSchema = new mongoose.Schema({ airline: String, rating: Number });
+const AirlineRating = mongoose.model('AirlineRating', RatingSchema, 'airline_ratings');
+
+// Ендпоїнт для генерації тестових рейтингів (щоб запит В працював)
+app.post('/api/analytics/seed-ratings', async (req, res) => {
+  await AirlineRating.deleteMany({});
+  await AirlineRating.insertMany([
+    { airline: 'Air France', rating: 4.8 },
+    { airline: 'Lviv Airlines', rating: 4.2 },
+    { airline: 'Kharkiv Wings', rating: 3.9 },
+    { airline: 'Odesa Air', rating: 4.5 }
+  ]);
+  res.json({ success: true, message: 'Рейтинги створено!' });
+});
+
+// А) Вибірка з умовами та сортуванням
+// Знайти всі скасовані рейси з Парижа, сортувати за датою вильоту
+app.get('/api/analytics/query-a', async (req, res) => {
+  try {
+    const result = await ArchivedFlight.find({
+      status: 'Cancelled',
+      'route.origin.city': 'Paris'
+    })
+    .sort({ 'schedule.departure': -1 }) // Сортування: від нових до старих
+    .select('flightNumber airline.name route.origin.city route.destination.city status schedule.departure'); // Проєкція (вибрати тільки ці поля)
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Б) Групування та агрегація
+// Порахувати кількість польотів та середню ціну квитка для кожної авіакомпанії
+app.get('/api/analytics/query-b', async (req, res) => {
+  try {
+    const result = await ArchivedFlight.aggregate([
+      { $unwind: "$passengerManifest" }, // Розгортаємо масив квитків, щоб рахувати середню ціну
+      {
+        $group: {
+          _id: "$airline.name", // Групуємо по імені авіакомпанії
+          totalFlights: { $addToSet: "$flightNumber" }, // Збираємо унікальні рейси (бо після unwind їх стало багато)
+          avgPrice: { $avg: "$passengerManifest.price" }, // Середня ціна
+          totalRevenue: { $sum: "$passengerManifest.price" } // Загальний виторг
+        }
+      },
+      {
+        $project: {
+          airline: "$_id",
+          flightCount: { $size: "$totalFlights" },
+          avgPrice: { $round: ["$avgPrice", 2] }, // Округлення
+          totalRevenue: 1,
+          _id: 0
+        }
+      },
+      { $sort: { totalRevenue: -1 } } // Сортуємо за виторгом
+    ]);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// В) З'єднання ($lookup)
+// Отримати список рейсів і "підтягнути" рейтинг авіакомпанії з іншої колекції
+app.get('/api/analytics/query-c', async (req, res) => {
+  try {
+    const result = await ArchivedFlight.aggregate([
+      { $limit: 10 }, // Беремо тільки 10 останніх для прикладу
+      {
+        $lookup: {
+          from: "airline_ratings",      // З якою колекцією з'єднуємо
+          localField: "airline.name",   // Поле в ArchivedFlight
+          foreignField: "airline",      // Поле в airline_ratings
+          as: "ratingInfo"              // Куди записати результат
+        }
+      },
+      {
+        $project: {
+          flightNumber: 1,
+          "airline.name": 1,
+          rating: { $arrayElemAt: ["$ratingInfo.rating", 0] } // Дістаємо число з масиву
+        }
+      }
+    ]);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
